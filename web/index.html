@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Daily Update</title>
+  <meta name="description" content="AI-written daily summaries: weather, ski, and your day.">
+  <meta name="theme-color" content="#f4f3ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Daily">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-180.png">
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1 id="app-title">Daily Update</h1>
+      <span id="today" class="tiny"></span>
+    </div>
+    <nav id="tabs" class="tabs" aria-label="Sections"></nav>
+    <button id="cost-chip" class="chip btn" data-ui="cost" title="AI cost this month">$ –</button>
+  </header>
+
+  <main>
+    <div id="bar" class="bar"></div>
+    <div id="content"><div class="loading">Loading…</div></div>
+  </main>
+
+  <div id="sheet" class="sheet" hidden>
+    <div class="sheet-backdrop" data-ui="close"></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <header class="sheet-head"><h2 id="sheet-title"></h2><button class="btn icon" data-ui="close" aria-label="Close">✕</button></header>
+      <div id="sheet-body" class="sheet-body"></div>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

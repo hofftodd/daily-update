@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets: access tokens, API keys, and the Google OAuth client
+.env
+.env.*
+credentials.json
+
+# Your config: personal places, interests, and trip tabs the app adds and removes at runtime.
+# config.example.json is the tracked starting point; install.sh copies it to config.json.
+config.json
+config.tmp
+*.bak*
+
+# Runtime state: Google token, payloads (with email and calendar summaries), prompts, usage, caches, logs
+data/
+*.log
+
+# Local tools
+.claude/
+.DS_Store

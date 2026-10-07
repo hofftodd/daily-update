@@ -1,0 +1,8 @@
+anthropic>=1.11
+youtube-transcript-api>=1.0
+google-api-python-client>=2.150
+google-auth-oauthlib>=1.2
+# Only needed for local models (a section with "llm": {"profile": "local"}):
+openai>=1.60
+ddgs>=9.0
+trafilatura>=2.0

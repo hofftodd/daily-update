@@ -1,0 +1,320 @@
+{
+  "app": {
+    "title": "Daily Update"
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8770,
+    "workers": 3
+  },
+  "units": "imperial",
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "max_searches": 4
+  },
+  "providers": {
+    "local": {
+      "provider": "openai",
+      "base_url": "http://localhost:8080/v1",
+      "model": "your-local-model",
+      "temperature": 0.3,
+      "max_tokens": 16000,
+      "timeout_s": 1200,
+      "max_steps": 14
+    }
+  },
+  "places": [
+    {
+      "id": "home",
+      "name": "Home",
+      "kind": "home",
+      "place": "Bend, OR",
+      "lat": 44.06,
+      "lon": -121.32,
+      "stations": []
+    },
+    {
+      "id": "elklake",
+      "name": "Elk Lake Cabin",
+      "kind": "cabin",
+      "place": "Elk Lake, Cascade Lakes Hwy, OR",
+      "lat": 43.98,
+      "lon": -121.8,
+      "elev_ft": 4900,
+      "snotel": [
+        "719:OR:SNTL",
+        "545:OR:SNTL",
+        "815:OR:SNTL"
+      ]
+    },
+    {
+      "id": "bachelor",
+      "name": "Mt. Bachelor",
+      "kind": "mountain",
+      "place": "Mt. Bachelor, OR",
+      "lat": 43.9792,
+      "lon": -121.6886,
+      "base_elev_ft": 6300,
+      "summit_elev_ft": 9065,
+      "website": "https://www.mtbachelor.com/the-mountain/mountain-report/",
+      "snow_forecast_slug": "Mt-Bachelor",
+      "stations": [
+        "MOONM",
+        "OD131"
+      ]
+    },
+    {
+      "id": "hoodoo",
+      "name": "Hoodoo",
+      "kind": "mountain",
+      "place": "Hoodoo Ski Area, Santiam Pass, OR",
+      "lat": 44.4083,
+      "lon": -121.8706,
+      "base_elev_ft": 4668,
+      "summit_elev_ft": 5703,
+      "website": "https://www.skihoodoo.com",
+      "snow_forecast_slug": "Hoodoo-Ski-Area"
+    },
+    {
+      "id": "meadows",
+      "name": "Mt. Hood Meadows",
+      "kind": "mountain",
+      "place": "Mt. Hood Meadows, OR",
+      "lat": 45.3311,
+      "lon": -121.665,
+      "base_elev_ft": 4523,
+      "summit_elev_ft": 7300,
+      "website": "https://www.skihood.com/mountain-report",
+      "snow_forecast_slug": "Mt-Hood-Meadows"
+    },
+    {
+      "id": "timberline",
+      "name": "Timberline",
+      "kind": "mountain",
+      "place": "Timberline Lodge, Mt. Hood, OR",
+      "lat": 45.3311,
+      "lon": -121.711,
+      "base_elev_ft": 5960,
+      "summit_elev_ft": 8540,
+      "website": "https://timberlinelodge.com/conditions",
+      "snow_forecast_slug": "Timberline"
+    },
+    {
+      "id": "skibowl",
+      "name": "Skibowl",
+      "kind": "mountain",
+      "place": "Mt. Hood Skibowl, Government Camp, OR",
+      "lat": 45.3017,
+      "lon": -121.7576,
+      "base_elev_ft": 3600,
+      "summit_elev_ft": 5026,
+      "website": "https://skibowl.com/",
+      "snow_forecast_slug": "Mt-Hood-Ski-Bowl"
+    },
+    {
+      "id": "willamette",
+      "name": "Willamette Pass",
+      "kind": "mountain",
+      "place": "Willamette Pass Resort, OR",
+      "lat": 43.5966,
+      "lon": -122.0337,
+      "base_elev_ft": 5120,
+      "summit_elev_ft": 6683,
+      "website": "https://www.willamettepass.com",
+      "snow_forecast_slug": "Willamette-pass"
+    },
+    {
+      "id": "ashland",
+      "name": "Mt. Ashland",
+      "kind": "mountain",
+      "place": "Mt. Ashland Ski Area, OR",
+      "lat": 42.0807,
+      "lon": -122.7158,
+      "base_elev_ft": 6344,
+      "summit_elev_ft": 7533,
+      "website": "https://www.mtashland.com/",
+      "snow_forecast_slug": "Mt-Ashland"
+    }
+  ],
+  "interests": [
+    "skiing and backcountry snow conditions",
+    "hiking and trail running",
+    "craft breweries and good local food",
+    "live music",
+    "weather and outdoor events",
+    "fly fishing",
+    "rafting, river culture, river permits",
+    "software engineering, ai"
+  ],
+  "sections": [
+    {
+      "id": "daily",
+      "type": "daily",
+      "title": "Today",
+      "icon": "☀️",
+      "refresh_minutes": 15,
+      "summary": {
+        "schedule_hours": [
+          0,
+          6,
+          12,
+          18
+        ]
+      },
+      "llm": {
+        "effort": "medium",
+        "profile": "local"
+      },
+      "calendar_days": 7,
+      "location": {
+        "home_place": "home",
+        "mac_max_age_min": 30,
+        "phone_max_age_min": 240,
+        "last_known_max_hours": 72
+      },
+      "privacy": {
+        "email_lookback_hours": 36,
+        "max_emails": 25,
+        "email_body_chars": 600,
+        "email_snippet_chars": 120,
+        "redact_email_addresses": false,
+        "drop_sensitive_emails": true,
+        "exclude_senders": [],
+        "exclude_calendars": [],
+        "include_event_descriptions": true
+      },
+      "research": {
+        "enabled": true,
+        "max_findings": 8,
+        "event_days": 14,
+        "events_per_run": 1,
+        "max_searches": 5
+      },
+      "trips": {
+        "enabled": true,
+        "lookahead_days": 45,
+        "min_km": 100
+      },
+      "meals": {
+        "enabled": true,
+        "days": 2,
+        "per_run": 3,
+        "max_searches": 3,
+        "picks": 3
+      }
+    },
+    {
+      "id": "local",
+      "type": "local",
+      "title": "Local",
+      "icon": "📍",
+      "refresh_minutes": 60,
+      "summary": {
+        "schedule_hours": [
+          6
+        ]
+      },
+      "llm": {
+        "profile": "local",
+        "max_steps": 24
+      },
+      "location": {
+        "home_place": "home",
+        "mac_max_age_min": 30,
+        "phone_max_age_min": 240,
+        "last_known_max_hours": 72
+      },
+      "research": {
+        "trigger_km": 40,
+        "horizon_days": 14,
+        "max_events": 12,
+        "max_info": 8,
+        "max_searches": 10
+      }
+    },
+    {
+      "id": "weather",
+      "type": "weather",
+      "title": "Weather",
+      "icon": "🌤️",
+      "refresh_minutes": 20,
+      "summary": {
+        "schedule_hours": [
+          5
+        ]
+      },
+      "llm": {
+        "max_searches": 3,
+        "profile": "local"
+      },
+      "locations": [
+        "home",
+        "elklake"
+      ],
+      "forecast_days": 10,
+      "use_nws": true,
+      "youtube_channels": []
+    },
+    {
+      "id": "ski",
+      "type": "ski",
+      "title": "Ski",
+      "icon": "🎿",
+      "refresh_minutes": 20,
+      "summary": {
+        "schedule_hours": [
+          0,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          18
+        ]
+      },
+      "llm": {
+        "max_searches": 6,
+        "effort": "medium",
+        "profile": "local"
+      },
+      "home_mountain": "bachelor",
+      "mountains": [
+        "hoodoo",
+        "meadows",
+        "timberline",
+        "skibowl",
+        "willamette",
+        "ashland"
+      ],
+      "forecast_days": 10,
+      "use_nws": true,
+      "avalanche": {
+        "center_id": "COAA",
+        "zone_id": 2470,
+        "label": "Tumalo Mtn",
+        "link": "https://coavalanche.org/pages/forecasts/#/central-cascades"
+      },
+      "youtube_channels": [
+        {
+          "name": "Chris Tomer",
+          "channel_id": "UCb8JPkld8YoOd2n6qAZ2aoQ",
+          "max_age_days": 7,
+          "max_videos": 7
+        }
+      ],
+      "forecast_blogs": [
+        {
+          "name": "Powderchasers",
+          "url": "https://powderchasers.com/blogs/powderchasers-forecasts",
+          "max_age_days": 10,
+          "max_posts": 3
+        }
+      ]
+    }
+  ]
+}
