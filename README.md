@@ -6,6 +6,7 @@ phone.
 | Tab | Type | What it does |
 |---|---|---|
 | ☀️ Today | `daily` | Location, weather, calendar, email that needs you, reminders, and research on upcoming calendar events |
+| 📰 News | `news` | Top stories from progressive, moderate and conservative outlets: a moderate summary, each side's framing, and who's covering what |
 | 📍 Local | `local` | Events in the next two weeks and what's worth knowing where you are now, researched around your interests |
 | ✈️ *Trip* | `local` | Added automatically for travel found on your calendar: the same research, for the destination and dates |
 | 🌤️ Weather | `weather` | Home and cabin conditions, local stations, SNOTEL, the week ahead, and a forecaster-style summary |
@@ -82,6 +83,23 @@ events is aimed at it. Edit the list in the file; the next research run picks it
 Local research runs at its summary times, and also as soon as you've moved `research.trigger_km` (40) from where it
 last ran. **🔎 Explore** runs it again now. It makes two web-search calls: dated events within `horizon_days` (14),
 and a "good to know" pass for news, openings, conditions and tips. Neither call sees email or calendar.
+
+## News tab
+
+Each refresh reads the RSS feeds of 12 outlets, four per side, with leans taken from the
+[AllSides ratings](https://www.allsides.com/media-bias/ratings): The Guardian, NPR, New York Times and Vox
+(progressive); BBC News, The Hill, Wall Street Journal and Christian Science Monitor (moderate); Fox News, New York
+Post, Washington Examiner and National Review (conservative). Feeds are free and need no keys.
+
+At each summary time, one model call (no web search) groups the headlines into the day's top `max_stories` (5).
+For each story it writes a moderate summary from facts reported across the spectrum, the main point in dispute, and
+one line on how each side framed it. It cites headlines by id rather than writing links. The server counts each
+side's cited headlines for the coverage bars, and drops a side's take when none of that side's headlines back it
+up, so a story only one side covered shows as a blind spot.
+
+Options in the section: `sources` (a list of `{"name", "lean", "url"}` that replaces the defaults; `lean` is
+`progressive`, `moderate` or `conservative`), `per_source` (10), `summary_chars` (160), `max_age_hours` (36) and
+`max_stories`. At the defaults the prompt is about 7k tokens.
 
 ## Meals around events
 
@@ -187,8 +205,8 @@ core/      server.py (HTTP + auth + scheduler), sections.py (plugin contract + r
            usage.py (cost log), common.py
 sources/   data fetchers: weather (Open-Meteo, NWS, stations, SNOTEL), snow (avalanche, snow-forecast.com,
            YouTube), google (Gmail/Calendar, read-only), location (Mac + phone, geocoding), places (OpenStreetMap
-           restaurants)
-sections/  one module per section type (daily, local, weather, ski), plus shared helpers: _here (current location),
+           restaurants), news (RSS/Atom feeds)
+sections/  one module per section type (daily, news, local, weather, ski), plus shared helpers: _here (current location),
            _research (interest-aware web research), _trips (trip tabs), _meals (restaurants near events),
            _places, _reminders
 web/       index.html, app.css, app.js (shell), lib.js (helpers), sections/<type>.js (renderers)
