@@ -206,6 +206,28 @@
       }
     },
     {
+      "id": "news",
+      "type": "news",
+      "title": "News",
+      "icon": "📰",
+      "refresh_minutes": 30,
+      "summary": {
+        "schedule_hours": [
+          6,
+          12,
+          18
+        ]
+      },
+      "llm": {
+        "profile": "local",
+        "max_searches": 0
+      },
+      "per_source": 10,
+      "max_age_hours": 36,
+      "max_stories": 5,
+      "summary_chars": 160
+    },
+    {
       "id": "local",
       "type": "local",
       "title": "Local",
