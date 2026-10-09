@@ -82,7 +82,11 @@ events is aimed at it. Edit the list in the file; the next research run picks it
 
 Local research runs at its summary times, and also as soon as you've moved `research.trigger_km` (40) from where it
 last ran. **🔎 Explore** runs it again now. It makes two web-search calls: dated events within `horizon_days` (14),
-and a "good to know" pass for news, openings, conditions and tips. Neither call sees email or calendar.
+and a "good to know" pass for news, openings, conditions and tips. Both look for the area's weekly newspapers
+(alt-weeklies, small-town weeklies) and their online calendars. Neither call sees email or calendar.
+
+To point research at a local paper, add `"news": ["https://www.bendsource.com/"]` to a place in `places`. Research
+within `trigger_km` of that place (Local, or a trip tab there) is told to check those sites first.
 
 ## News tab
 

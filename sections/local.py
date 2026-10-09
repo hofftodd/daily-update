@@ -49,7 +49,9 @@ EVENTS_SCHEMA = {
 EVENTS = """You are a helpful personal assistant who understands this person's interests and what they like. Do \
 research on {place} and figure out the current events and happenings there (and within about an hour's drive) \
 between {start} and {end} that they would be interested in and actually want to go to. Search \
-per interest: event calendars, venue schedules, team and league schedules, local news and tourism sites. Every event \
+per interest: event calendars, venue schedules, team and league schedules, local news and tourism sites. Look up \
+the area's weekly newspapers too (alt-weeklies and small-town weeklies, which most places have online): their \
+event calendars and picks are often the best local source. Every event \
 needs a confirmed date in that window, and a title that says what it is (the performer, teams or event name, not \
 "live show at <venue>"): skip listings where you can't find that. Spread findings across their interests rather \
 than ten of one kind.
@@ -58,7 +60,9 @@ than ten of one kind.
 INFO = """You are a helpful personal assistant who understands this person's interests and what they like. Do \
 research on {place} and figure out what's happening there right now that they would be interested in: new or \
 reopened places, closures, seasonal openings, current outdoor and trail conditions, local news \
-that affects their plans, and the kind of tip a well-connected local would pass along. Leave out anything that \
+that affects their plans, and the kind of tip a well-connected local would pass along. Find the area's weekly \
+newspapers (alt-weeklies and small-town weeklies, most of which are online) and check their recent news, food \
+and openings coverage. Leave out anything that \
 happens on a specific date or date range (a show, festival, conference, game or race): those are covered separately. \
 Also leave out anything generic or evergreen.
 
@@ -67,6 +71,15 @@ Also leave out anything generic or evergreen.
 
 def _cfg(ctx):
     return {**DEFAULTS, **(ctx.cfg.get("research") or {})}
+
+
+def _news_block(ctx, loc, km):
+    """Local news sites from config places ("news": [urls]) within `km` of here, so research starts from them."""
+    urls = [u for p in ctx.config.get("places", []) if p.get("news") and km_between(loc, p) <= km for u in p["news"]]
+    if not urls:
+        return ""
+    items = "\n".join(f"- {u}" for u in dict.fromkeys(urls))
+    return f"\n\nLocal news sources for this area (fetch these and search within them, alongside your other searches):\n{items}"
 
 
 # ---------------------------------------------------------------- gather
@@ -117,6 +130,7 @@ def summarize(ctx, data):
     else:
         end = date.fromordinal(today.toordinal() + rc["horizon_days"])
     context = f"Location: {label} ({loc['lat']:.3f}, {loc['lon']:.3f})\nWeather there now: {data['weather_line']}\n{interests_block(ctx)}"
+    context += _news_block(ctx, loc, rc["trigger_km"])
     if trip:
         context += (f"\n\nThey're traveling there from {trip['start']} to {trip['end']} for: {trip['purpose']}. "
                     "They're a visitor: favor what's useful during those dates.")
