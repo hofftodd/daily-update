@@ -166,6 +166,8 @@ def _openai(cfg, system, user, schema, name, web_searches, on_usage):
                     log(f"  {name} step {step + 1}: {tc.function.name}({(tc.function.arguments or '')[:120]})")
                     messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
             messages.append({"role": "user", "content": "Now publish the finished result as JSON. Use only facts and URLs you actually saw."})
+            # Same tools as the loop so the rendered prompt prefix matches and the server's KV cache is reused.
+            common.update(tools=LocalWeb.TOOLS, tool_choice="none")
         r = api.chat.completions.create(
             **common, messages=messages,
             response_format={"type": "json_schema", "json_schema": {"name": name, "strict": True, "schema": schema}},
