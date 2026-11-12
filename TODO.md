@@ -15,8 +15,11 @@
       ~30 minutes behind Ski and three new trip tabs. Options: one LLM call at a time with priority (Today first),
       staggered `schedule_hours`, or skipping summaries at startup when the last one is recent.
 - [ ] A server restart kills runs in progress. Finish or checkpoint the current run on SIGTERM.
-- [ ] Ski sends ~40k tokens per request because search results pile up in the tool loop. Summarize or drop old tool
-      results after each step.
+- [x] Ski's prompt was ~60k tokens before any search: seven full YouTube transcripts (54%) and full detail for
+      every mountain. Now only the passages that mention `focus_keywords` go, and the other mountains get a
+      7-day summary (~21k tokens). Search results add only 1–3k per step, so the tool loop is fine as is.
+- [ ] YouTube's channel feed sometimes returns 404 (Chris Tomer; seen most evenings in October). Retry, or fall
+      back to the last videos fetched.
 
 ## Trips
 
@@ -35,7 +38,7 @@
 
 ## UI
 
-- [ ] The Weather and Ski tabs still use the auto-fill grid, which leaves gaps beside short cards. Move them to the
+- [ ] The Weather tab still uses the auto-fill grid, which leaves gaps beside short cards. Move it to the
       column layout that Today and Local use.
 - [ ] The ⚙ model picker and the cost views assume Claude. With the local model, show tokens and time instead of
       dollars, and list the local server's models.

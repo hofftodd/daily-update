@@ -1,6 +1,7 @@
 """Shared by the weather and ski sections: fetch everything for a list of places, and lay it out for a prompt."""
 
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
@@ -32,7 +33,7 @@ def fetch_place(place, units, days=10, use_nws=True):
     return data, nws, errs
 
 
-PLACE_KEYS = ("id", "name", "kind", "place", "website", "lat", "lon", "elev_ft", "base_elev_ft", "summit_elev_ft")
+PLACE_KEYS = ("id", "name", "kind", "place", "website", "lat", "lon", "elev_ft", "base_elev_ft", "summit_elev_ft", "webcams")
 
 
 def fetch_places(ctx, place_ids, days=10, use_nws=True):
@@ -71,22 +72,39 @@ def fetch_places(ctx, place_ids, days=10, use_nws=True):
     return out
 
 
-def prompt_locations(locations, extra=None):
-    """Prompt blocks for each place, plus each NWS office's forecast discussion once."""
+BRIEF_DAYS = 7
+DAILY_SKIP = ("sunrise", "sunset")  # the page draws these; the model doesn't need them
+
+
+def prompt_locations(locations, extra=None, brief=None):
+    """Prompt blocks for each place, plus each NWS office's forecast discussion once.
+
+    `brief(loc)` -> True sends a shorter block for that place (7 days, no snow-forecast.com, stations or SNOTEL),
+    for places that only need a quick status. Open-Meteo's units table goes once, before the places.
+    """
     now = datetime.now().astimezone()
     parts = [f"Current local time: {now:%A %Y-%m-%d %H:%M %Z}\n"]
+    units = next((l["units"] for l in locations if l.get("units")), None)
+    if units:
+        parts.append(f"<open_meteo_units>{json.dumps(units, separators=(',', ':'))}</open_meteo_units>")
     seen = set()
     for loc in locations:
+        short = bool(brief and brief(loc))
+        days = BRIEF_DAYS if short else None
+        daily = [{k: v for k, v in d.items() if k not in DAILY_SKIP} for d in (loc.get("daily") or [])[:days]]
         summary = {
             "id": loc["id"], "name": loc["name"], "kind": loc["kind"], "place": loc.get("place"),
             "lat": loc["lat"], "lon": loc["lon"], "resort_website": loc.get("website"),
             "elev_ft": loc.get("elev_ft"), "base_elev_ft": loc.get("base_elev_ft"), "summit_elev_ft": loc.get("summit_elev_ft"),
-            "open_meteo": {k: loc.get(k) for k in ("current", "base_current", "daily", "snow_models", "snow_7d", "units") if loc.get(k)},
-            "nws_forecast": loc.get("nws_periods"),
+            "open_meteo": {k: v for k, v in {
+                "current": loc.get("current"), "base_current": loc.get("base_current"), "daily": daily,
+                "snow_models": (loc.get("snow_models") or [])[:days], "snow_7d": loc.get("snow_7d"),
+            }.items() if v},
+            "nws_forecast": (loc.get("nws_periods") or [])[: 2 * BRIEF_DAYS if short else None],
             "nws_alerts": loc.get("alerts"),
-            "snow_forecast_com": loc.get("snow_forecast"),
-            "local_stations": loc.get("local_stations"),
-            "snotel": loc.get("snotel"),
+            "snow_forecast_com": None if short else loc.get("snow_forecast"),
+            "local_stations": None if short else loc.get("local_stations"),
+            "snotel": None if short else loc.get("snotel"),
             **(extra(loc) if extra else {}),
         }
         parts.append(f"<location>\n{json.dumps({k: v for k, v in summary.items() if v not in (None, [], {})}, separators=(',', ':'))}\n</location>")
@@ -97,12 +115,42 @@ def prompt_locations(locations, extra=None):
     return parts
 
 
-def prompt_videos(videos):
-    return [
-        f"<video channel=\"{v['channel']}\" published=\"{v['published']}\" url=\"{v['url']}\">\n"
-        f"Title: {v['title']}\nDescription: {v['description']}\nTranscript: {v['transcript'] or '(no transcript available)'}\n</video>"
-        for v in videos
-    ]
+def excerpts(text, keywords, window=500):
+    """The parts of `text` within `window` characters of any keyword, merged and joined with " … "; "" if none."""
+    if not text or not keywords:
+        return ""
+    pattern = re.compile(r"\b(?:" + "|".join(re.escape(k) for k in keywords) + r")\b", re.I)
+    spans = []
+    for m in pattern.finditer(text):
+        a, b = max(0, m.start() - window), min(len(text), m.end() + window)
+        if spans and a <= spans[-1][1]:
+            spans[-1][1] = b
+        else:
+            spans.append([a, b])
+    return " … ".join(text[a:b].strip() for a, b in spans)
+
+
+def prompt_videos(videos, focus=None):
+    """With `focus` keywords, only the transcript passages that mention them; videos that never do are left out.
+
+    Forecast videos usually cover the whole West, and a full transcript is ~15k characters.
+    """
+    parts = []
+    for v in videos:
+        transcript = v["transcript"]
+        if focus:
+            transcript = excerpts(f"{v['title']}\n{v['description']}\n{transcript or ''}", focus)
+            if not transcript:
+                log(f"  skipped video {v['published'][:10]} {v['channel']}: doesn't mention {focus[0]} or nearby")
+                continue
+        parts.append(
+            f"<video channel=\"{v['channel']}\" published=\"{v['published']}\" url=\"{v['url']}\">\n"
+            f"Title: {v['title']}\n"
+            + (f"Passages about this area: {transcript}" if focus else
+               f"Description: {v['description']}\nTranscript: {transcript or '(no transcript available)'}")
+            + "\n</video>"
+        )
+    return parts
 
 
 def fetch_videos(channels):

@@ -12,7 +12,7 @@ phone.
 | 🌤️ Weather | `weather` | Home and cabin conditions, local stations, SNOTEL, the week ahead, and a forecaster-style summary |
 | 🎿 Ski | `ski` | Regional snow outlook, home mountain, avalanche forecast, other mountains, with resort status checked by web search |
 
-All AI work runs on a local model by default (any OpenAI-compatible server: llama.cpp, llama-swap, LM Studio,
+All AI work runs on a local model by default (any OpenAI-compatible server: llama.cpp, ai-swap, LM Studio,
 Ollama), so nothing is sent to a cloud model and summaries cost nothing. Any section can be switched to Claude
 instead (see [Models](#models)).
 
@@ -105,6 +105,18 @@ Options in the section: `sources` (a list of `{"name", "lean", "url"}` that repl
 `progressive`, `moderate` or `conservative`), `per_source` (10), `summary_chars` (160), `max_age_hours` (36) and
 `max_stories`. At the defaults the prompt is about 7k tokens.
 
+## Ski tab
+
+Forecast videos usually cover the whole West. With `focus_keywords` in the Ski section (e.g. `["Oregon",
+"Pacific Northwest", "Cascades", "Bachelor"]`), only the transcript passages that mention one are sent to the
+model, and videos that never do are skipped. The home mountain gets full detail in the prompt; the others get a
+7-day summary.
+
+To show a mountain's webcams under the home mountain, add a `webcams` list to that place in `places`:
+`"webcams": [{"label": "Snow stake", "url": "https://api.mtbachelor.com/api/v1/cams/mtn/14"}]`. The URL must return
+an image. The browser loads it straight from the resort, again on each data refresh. The images aren't sent to the
+model.
+
 ## Meals around events
 
 For events today and tomorrow that fall near a mealtime, the Agenda suggests places to eat close to the venue, e.g.
@@ -194,9 +206,19 @@ DuckDuckGo and fetches pages, but no email content.
 `config.json` → `llm` is the default for every section, and each section's `llm` overrides it:
 
 - **Local** (what every section uses now): `"llm": {"profile": "local"}` uses `providers.local`, which is any
-  OpenAI-compatible server (llama.cpp, llama-swap, LM Studio, Ollama). It needs `json_schema` response format and
+  OpenAI-compatible server (llama.cpp, ai-swap, LM Studio, Ollama). It needs `json_schema` response format and
   tool calling. Web search runs locally through DuckDuckGo plus a page reader, and `max_steps` caps the tool loop
-  (the Local tab uses 24). Thinking models are fine: `<think>` blocks are stripped.
+  (the Local tab uses 24). Thinking models are fine: `<think>` blocks are stripped. `effort` is sent as
+  `chat_template_kwargs.reasoning_effort` (`high` becomes `xhigh`), which Qwen3.8's template reads; without it,
+  Qwen3.8 thinks at `xhigh`.
+- **Model swapping (ai-swap):** to share the GPUs with other clients, give `providers.local` a `models` preference
+  list instead of relying on `model` alone, e.g.
+  `["thinkingcap-qwen3.8-27b@mini-ubuntu", "qwen3.8-27b@mini-ubuntu", "flint@studio", "deepseek-v4-flash@studio"]`.
+  Each call reads `/v1/models` and uses the first listed model that's already loaded, on any machine, so a summary
+  doesn't evict what another client is using; if none is, it asks for the first one the server offers and ai-swap
+  swaps it in. A call stays on one model for its whole tool loop. Entries are ids as ai-swap lists them, or
+  `name@node`. While a machine is reserved (503 with `Retry-After`), calls wait up to 30 minutes. Point
+  `base_url` at ai-swap's `/v1`, not `/upstream/<model>/v1`, which ai-swap only serves for GET.
 - **Anthropic:** remove the section's `profile` (or pick "Claude" in ⚙) to use `llm.model`, `effort` and
   `max_searches`. Web search uses Anthropic's server-side tool. Needs `ANTHROPIC_API_KEY` in `.env`.
 

@@ -6,6 +6,8 @@ config.json section options:
   "avalanche": {"center_id": "COAA", "zone_id": 2470, "label": "...", "link": "..."}
   "youtube_channels": [{"name", "channel_id", "max_age_days", "max_videos"}]
   "forecast_blogs": [{"name", "url", "feed" (optional; default <url>.atom), "max_age_days", "max_posts"}]
+  "focus_keywords": ["Oregon", "Cascades", ...]   send only the video passages that mention these (videos that
+                                                   never do are skipped); without it, whole transcripts go
 """
 
 from sections._places import (
@@ -157,11 +159,14 @@ def summarize(ctx, data):
     videos = fetch_videos(ctx.cfg.get("youtube_channels"))
     posts = fetch_blogs(ctx.cfg.get("forecast_blogs"))
     home = data.get("home_mountain")
-    parts = prompt_locations(data["locations"], extra=lambda l: {"home_mountain": l["id"] == home})
+    # Full detail for the home mountain only: the others need a quick status and snow outlook.
+    parts = prompt_locations(
+        data["locations"], extra=lambda l: {"home_mountain": l["id"] == home}, brief=lambda l: l["id"] != home,
+    )
     av = data.get("avalanche")
     if av and not av.get("expired"):
         parts.append(f"<avalanche_forecast zone=\"{av.get('zone')}\">\n{av.get('bottom_line')}\n</avalanche_forecast>")
-    parts += prompt_videos(videos) + prompt_blogs(posts)
+    parts += prompt_videos(videos, ctx.cfg.get("focus_keywords")) + prompt_blogs(posts)
     home_name = next((l["name"] for l in data["locations"] if l["id"] == home), home)
     ctx.status("Writing the AI summary…")
     result, info = ctx.llm(

@@ -5,8 +5,9 @@
 `cfg` is the section's resolved llm settings (see sections.resolve_llm):
   provider "anthropic": Claude via the Anthropic SDK. The result comes back through a strict `publish_<name>`
       tool; web search is Anthropic's server-side tool.
-  provider "openai": any OpenAI-compatible server (llama.cpp / llama-swap, LM Studio, Ollama's /v1). The result
-      is a json_schema completion; web search is a local DuckDuckGo + page-fetch tool loop.
+  provider "openai": any OpenAI-compatible server (llama.cpp, ai-swap, LM Studio, Ollama's /v1). The result
+      is a json_schema completion; web search is a local DuckDuckGo + page-fetch tool loop. With a `models`
+      preference list, the model is picked per call by choose_model.
 
 `info` has the token usage and the URLs the model actually saw (for dropping hallucinated links).
 Usage is reported through `on_usage(usage, ok)` even when a call fails, because failed calls are billed too.
@@ -26,6 +27,7 @@ def generate(cfg, *, system, user, schema, name, description="Publish the finish
     if provider == "anthropic":
         return _anthropic(cfg, system, user, schema, name, description, web_searches, on_usage)
     if provider == "openai":
+        cfg = choose_model(cfg, name)
         return _openai(cfg, system, user, schema, name, web_searches, on_usage)
     raise ValueError(f"unknown llm provider {provider!r}")
 
@@ -120,6 +122,71 @@ def _client(cfg):
     return OpenAI(base_url=cfg["base_url"], api_key=cfg.get("api_key", "local"), timeout=cfg.get("timeout_s", 1200), max_retries=3)
 
 
+def choose_model(cfg, name=None):
+    """Pick the model for one call from the profile's `models` preference list, and return cfg with it set.
+
+    For a model-swapping server (ai-swap), whose /v1/models reports each model's `status` and `node`: the first
+    listed model that is already loaded wins, so a summary doesn't evict what another client is using. If none is
+    loaded, the first one the server offers is asked for, and the server swaps it in. Entries are model ids as the
+    server lists them ("flint@studio"), or "name@node" for a model on the server's own node. Without a `models`
+    list, cfg["model"] is used as is. The returned cfg has no list left, so choosing again is a no-op.
+    """
+    prefs = cfg.get("models")
+    if cfg.get("provider") != "openai" or not prefs:
+        return cfg
+    try:
+        listed = [(m.id, getattr(m, "node", None), getattr(m, "status", None)) for m in _client(cfg).models.list().data]
+    except Exception as e:
+        log(f"{name or 'llm'}: listing models failed ({e}); using {prefs[0]}")
+        return {**cfg, "model": prefs[0], "models": None}
+
+    def find(pref):
+        base, _, node = pref.partition("@")
+        for mid, mnode, status in listed:
+            if mid == pref or (node and mid == base and mnode == node):
+                return mid, status
+        return None
+
+    found = [(pref, hit) for pref in prefs if (hit := find(pref))]
+    ready = [(pref, hit) for pref, hit in found if hit[1] == "ready"]
+    if ready:
+        model = ready[0][1][0]
+        why = "loaded"
+    elif found:
+        model = found[0][1][0]
+        why = "none of the preferred models is loaded; loading it"
+    else:
+        model = prefs[0]
+        why = "the server lists none of the preferred models"
+    log(f"{name or 'llm'}: model {model} ({why})")
+    return {**cfg, "model": model, "models": None}
+
+
+RESERVED_WAIT_S = 30 * 60
+
+
+def _create(api, **kwargs):
+    """A chat completion that waits out a 503 with Retry-After, such as ai-swap while a benchmark has reserved the
+    machine, instead of failing the summary. Gives up after RESERVED_WAIT_S."""
+    from openai import APIStatusError
+
+    deadline = time.time() + RESERVED_WAIT_S
+    while True:
+        try:
+            return api.chat.completions.create(**kwargs)
+        except APIStatusError as e:
+            retry = e.response.headers.get("retry-after") if e.status_code == 503 else None
+            if not retry or time.time() >= deadline:
+                raise
+            try:
+                wait = max(5.0, float(retry))
+            except ValueError:
+                wait = 30.0
+            wait = min(wait, 300.0, max(5.0, deadline - time.time()))
+            log(f"model server busy ({str(e)[:160]}); retrying in {wait:.0f}s")
+            time.sleep(wait)
+
+
 def _strip_think(text):
     # Some servers leave Qwen's <think> block in the content instead of a separate reasoning field.
     return re.sub(r"(?s)<think>.*?</think>", "", text or "").strip()
@@ -132,6 +199,10 @@ def _openai(cfg, system, user, schema, name, web_searches, on_usage):
     seen_urls = set()
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     common = {"model": model, "temperature": cfg.get("temperature", 0.3), "max_tokens": cfg.get("max_tokens", 16000)}
+    if cfg.get("effort"):
+        # Qwen3.8-style templates read reasoning_effort (low / medium / xhigh) and default to xhigh; others ignore it.
+        effort = {"high": "xhigh"}.get(cfg["effort"], cfg["effort"])
+        common["extra_body"] = {"chat_template_kwargs": {"reasoning_effort": effort}}
 
     def count(r):
         usage["requests"] += 1
@@ -143,7 +214,7 @@ def _openai(cfg, system, user, schema, name, web_searches, on_usage):
         if web_searches:
             web = LocalWeb(seen_urls)
             for step in range(cfg.get("max_steps", 14)):
-                r = api.chat.completions.create(**common, messages=messages, tools=LocalWeb.TOOLS)
+                r = _create(api, **common, messages=messages, tools=LocalWeb.TOOLS)
                 count(r)
                 msg = r.choices[0].message
                 calls = msg.tool_calls or []
@@ -168,8 +239,8 @@ def _openai(cfg, system, user, schema, name, web_searches, on_usage):
             messages.append({"role": "user", "content": "Now publish the finished result as JSON. Use only facts and URLs you actually saw."})
             # Same tools as the loop so the rendered prompt prefix matches and the server's KV cache is reused.
             common.update(tools=LocalWeb.TOOLS, tool_choice="none")
-        r = api.chat.completions.create(
-            **common, messages=messages,
+        r = _create(
+            api, **common, messages=messages,
             response_format={"type": "json_schema", "json_schema": {"name": name, "strict": True, "schema": schema}},
         )
         count(r)
