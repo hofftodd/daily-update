@@ -1,6 +1,6 @@
 // Ski: regional snow outlook, home mountain in depth, avalanche forecast, and the other mountains at a glance.
 
-import { ago, card, chip, compass, confidenceDots, dayName, empty, html, link, localDate, r0, r1, raw, wmo } from "../lib.js";
+import { ago, card, chip, compass, confidenceDots, dayName, empty, html, link, localDate, r0, r1, raw, safeUrl, wmo } from "../lib.js";
 import { aiBox, alerts, miniBars, snowChart, staleNote, stationStrip } from "./_wx.js";
 
 const isOpen = (status) => /\bopen\b/i.test(status || "") && !/clos|opens/i.test(status || "");
@@ -111,6 +111,25 @@ const homeCard = (loc, b) => {
   });
 };
 
+// ------------------------------------------------------------------ webcams
+
+// Straight from the resort, re-requested on each data refresh so the browser doesn't show a cached frame.
+const webcamCard = (loc, at) => {
+  const cams = ((loc && loc.webcams) || []).filter((c) => safeUrl(c.url));
+  if (!cams.length) return "";
+  const fresh = (url) => `${url}${url.includes("?") ? "&" : "?"}t=${encodeURIComponent(at || "")}`;
+  return card({
+    title: `📷 ${loc.name} webcams`,
+    right: loc.website ? link(loc.website, "All conditions ↗") : "",
+    body: html`<div class="cams">${cams.map((c) => html`<figure class="cam">
+      <a href="${fresh(c.url)}" target="_blank" rel="noopener noreferrer" title="Open full size">
+        <img src="${fresh(c.url)}" alt="${c.label}" loading="lazy">
+      </a>
+      <figcaption class="tiny">${c.label}</figcaption>
+    </figure>`)}</div>`,
+  });
+};
+
 // ------------------------------------------------------------------ avalanche
 
 // North American Public Avalanche Danger Scale (always paired with the level name).
@@ -214,10 +233,17 @@ export const render = (payload) => {
   const byId = s.mountains || {};
   const home = data.locations.find((l) => l.id === data.home_mountain);
   const others = data.locations.filter((l) => l !== home);
-  return html`<div class="grid">
-    ${outlookCard(s.outlook || modelOutlook(home), payload.summary_generated_at)}
-    ${home ? homeCard(home, byId[home.id]) : ""}
-    ${avalancheCard(data.avalanche)}
-    ${othersCard(others, byId)}
+  // Two columns like Today: the snow story on the left, webcams and avalanche beside it. On a phone the columns
+  // dissolve and "o-N" sets the order.
+  return html`<div class="cols">
+    <div class="col main">
+      <div class="o-1">${outlookCard(s.outlook || modelOutlook(home), payload.summary_generated_at)}</div>
+      <div class="o-2">${home ? homeCard(home, byId[home.id]) : ""}</div>
+      <div class="o-5">${othersCard(others, byId)}</div>
+    </div>
+    <div class="col">
+      <div class="o-3">${webcamCard(home, payload.generated_at)}</div>
+      <div class="o-4">${avalancheCard(data.avalanche)}</div>
+    </div>
   </div>`;
 };

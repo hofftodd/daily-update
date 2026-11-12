@@ -105,6 +105,11 @@ pre { white-space: pre-wrap; word-break: break-word; }
 a.plain { text-decoration: none; }
 a.plain:hover { color: var(--accent); }
 .links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+
+.cams { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+.cam { margin: 0; min-width: 0; }
+.cam img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--rule); }
+.cam figcaption { margin-top: 4px; color: var(--ink-2); }
 .linkish { background: none; border: 0; padding: 0; cursor: pointer; font-size: inherit; }
 
 /* ------------------------------------------------------------------ header & tabs */
@@ -188,6 +193,7 @@ main { max-width: 1320px; margin: 0 auto; padding: 16px max(16px, env(safe-area-
 .mini:hover { border-color: var(--accent); color: var(--ink); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.chips .chip { white-space: normal; max-width: 100%; }  /* a long AI note wraps instead of widening the card */
 .chip {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 12px; padding: 3px 9px; border-radius: 999px;
@@ -203,12 +209,14 @@ main { max-width: 1320px; margin: 0 auto; padding: 16px max(16px, env(safe-area-
 .cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 16px; }
 .col > div:empty { display: none; }
+.col > div { min-width: 0; }
 .where { font-size: 14px; font-weight: 400; margin-top: 2px; }
 .where .tiny { display: inline; }
 .meal { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
 @media (max-width: 900px) {
   .cols { display: flex; flex-direction: column; }
   .col { display: contents; }
+  .cols > .col > div { min-width: 0; width: 100%; }
   .o-1 { order: 1; } .o-2 { order: 2; } .o-3 { order: 3; } .o-4 { order: 4; } .o-5 { order: 5; } .o-6 { order: 6; }
 }
 

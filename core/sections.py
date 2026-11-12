@@ -21,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 
 from core import usage
 from core.common import DATA, load_config, log, read_json, slot_passed, write_atomic
-from core.llm import generate
+from core.llm import choose_model, generate
 
 RETRY_AFTER = timedelta(minutes=30)
 
@@ -88,7 +88,7 @@ class Context:
         return resolve_llm(self.config, self.cfg)
 
     def llm(self, *, call, system, user, schema, description="Publish the finished result.", web_searches=None):
-        cfg = self.llm_cfg
+        cfg = choose_model(self.llm_cfg, call)  # once per call, so the whole tool loop stays on one model
         searches = cfg.get("max_searches", 0) if web_searches is None else web_searches
         # Models don't know the date, and without it web searches drift to past seasons.
         system = f"{system}\n\nToday is {datetime.now().astimezone():%A, %B %-d, %Y}."
