@@ -34,7 +34,9 @@ Then:
 1. **Config:** `install.sh` copies `config.example.json` to `config.json` if there isn't one. `config.json` is
    git-ignored because it holds your places and interests, and the app edits it (⚙ settings, trip tabs). Set your
    `places` (home, cabin, mountains), `interests`, and `providers.local` (your OpenAI-compatible model server).
-2. **Model:** with the default local model, there's nothing more to do. To use Claude for any section, add
+2. **Model:** with the default local model, there's nothing more to do. If the model server needs an API key
+   (ai-swap with `AI_SWAP_API_KEY` set), put it in `.env` as `AI_SWAP_API_KEY=...`; `providers.local.api_key_env`
+   names that variable, so the key stays out of `config.json`. To use Claude for any section, add
    `ANTHROPIC_API_KEY=...` to `.env`.
 3. **Google** (optional, for Today's email and calendar). Gmail and Calendar are requested read-only:
    1. In the [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Gmail API**
