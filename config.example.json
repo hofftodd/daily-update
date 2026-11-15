@@ -18,6 +18,7 @@
     "local": {
       "provider": "openai",
       "base_url": "http://localhost:8080/v1",
+      "api_key_env": "AI_SWAP_API_KEY",
       "model": "your-local-model",
       "models": [],
       "temperature": 0.3,

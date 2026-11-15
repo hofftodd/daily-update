@@ -14,6 +14,7 @@ Usage is reported through `on_usage(usage, ok)` even when a call fails, because 
 """
 
 import json
+import os
 import re
 import time
 
@@ -119,7 +120,10 @@ def _anthropic(cfg, system, user, schema, name, description, web_searches, on_us
 def _client(cfg):
     from openai import OpenAI
 
-    return OpenAI(base_url=cfg["base_url"], api_key=cfg.get("api_key", "local"), timeout=cfg.get("timeout_s", 1200), max_retries=3)
+    # "api_key_env" names an environment variable holding the key (e.g. AI_SWAP_API_KEY, set in
+    # .env), so the key stays out of config.json; a literal "api_key" still works.
+    key = cfg.get("api_key") or (os.environ.get(cfg["api_key_env"], "") if cfg.get("api_key_env") else "") or "local"
+    return OpenAI(base_url=cfg["base_url"], api_key=key, timeout=cfg.get("timeout_s", 1200), max_retries=3)
 
 
 def choose_model(cfg, name=None):
