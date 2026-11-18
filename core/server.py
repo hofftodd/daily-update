@@ -27,7 +27,7 @@ from urllib.parse import parse_qs, urlparse
 
 from core import usage
 from core.common import DATA, ROOT, km_between, load_config, load_env, log, read_json, update_config, write_atomic
-from core.sections import Context, Runner, module_for, resolve_llm, section_cfg, section_cfgs, section_meta
+from core.sections import Context, Runner, module_for, resolve_llm, section_cfg, section_cfgs, section_meta, tab_order
 from sections import _trips
 from sections._research import interests
 
@@ -201,7 +201,7 @@ class Handler(BaseHTTPRequestHandler):
     def _sections(self):
         config = load_config()
         metas = []
-        for s in section_cfgs(config):
+        for s in tab_order(section_cfgs(config)):
             try:
                 metas.append(section_meta(config, s, self.runner))
             except Exception as e:  # one broken section shouldn't take down the tab bar

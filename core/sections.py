@@ -34,6 +34,13 @@ def section_cfgs(config, enabled_only=True):
     return [s for s in config.get("sections", []) if s.get("enabled", True) or not enabled_only]
 
 
+def tab_order(cfgs):
+    """Config order for the fixed tabs, then trip tabs at the end, soonest first."""
+    fixed = [s for s in cfgs if not s.get("dynamic")]
+    trips = sorted((s for s in cfgs if s.get("dynamic")), key=lambda s: ((s.get("trip") or {}).get("start", ""), s["id"]))
+    return fixed + trips
+
+
 def section_cfg(config, sid):
     return next((s for s in config.get("sections", []) if s["id"] == sid), None)
 
